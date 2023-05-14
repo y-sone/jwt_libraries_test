@@ -62,6 +62,7 @@ class LcobucciJWT
 
         // バリデーションエラーを例外で返したい場合はassert()を使用する
         return $this->config->validator()->validate($token, ...$this->config->validationConstraints());
+//        return $this->config->validator()->assert($token, ...$this->config->validationConstraints());
     }
 
     // tokenからデータを取得
@@ -73,7 +74,11 @@ class LcobucciJWT
     }
 }
 
-$lcobucci_jwt = new LcobucciJWT();
-$jwt = $lcobucci_jwt->createToken();
-$lcobucci_jwt->checkToken($jwt);
-$lcobucci_jwt->getData($jwt);
+try {
+    $lcobucci_jwt = new LcobucciJWT();
+    $jwt = $lcobucci_jwt->createToken();
+    $result = $lcobucci_jwt->checkToken($jwt);
+    $data = $lcobucci_jwt->getData($jwt);
+} catch (Exception $e) {
+    echo $e->getMessage() . "\n";
+}
