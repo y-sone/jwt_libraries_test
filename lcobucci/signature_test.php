@@ -7,7 +7,10 @@ use Lcobucci\JWT\Signer\Key\InMemory;
 use Lcobucci\JWT\Signer\RSA\Sha256;
 use Lcobucci\JWT\Validation\Constraint\SignedWith;
 use Lcobucci\JWT\Validation\Constraint\IssuedBy;
+use Lcobucci\JWT\Validation\Constraint\LooseValidAt;
+use Lcobucci\JWT\Validation\Constraint\StrictValidAt;
 use Lcobucci\JWT\Validation\Constraint\RelatedTo;
+use Lcobucci\Clock\FrozenClock;
 
 class LcobucciJWT
 {
@@ -25,12 +28,15 @@ class LcobucciJWT
     // tokenの生成
     public function createToken(): string
     {
+        $datetime = new DateTimeImmutable();
+
         $token = $this->config->builder()
-            ->issuedBy('hogehoge')              // iss
-            ->relatedTo('Hello!')               // sub
-            ->withClaim('name', 'fugafuga')     // name(パブリッククレーム)
-            ->withClaim('admin', true)          // admin(プライベートクレーム)
-            ->issuedAt(new DateTimeImmutable()) // iat
+            ->issuedBy('hogehoge') // iss
+            ->relatedTo('Hello!') // sub
+            ->withClaim('name', 'fugafuga') // name(パブリッククレーム)
+            ->withClaim('admin', true) // admin(プライベートクレーム)
+            ->issuedAt($datetime) // iat
+            ->expiresAt($datetime->add(new DateInterval('PT1H'))) // exp
             ->getToken($this->config->signer(), $this->config->signingKey());
 
         return $token->toString();
@@ -39,6 +45,8 @@ class LcobucciJWT
     // tokenの検証
     public function checkToken(string $jwt): bool
     {
+        $datetime = new DateTimeImmutable();
+
         $token = $this->config->parser()->parse($jwt);
         $this->config->setValidationConstraints(...[
             // 署名検証
@@ -46,7 +54,10 @@ class LcobucciJWT
             // iss検証
             new IssuedBy('hogehoge'),
             // sub検証
-            new RelatedTo('Hello!')
+            new RelatedTo('Hello!'),
+            // iat, exp検証
+            new LooseValidAt(new FrozenClock($datetime)),
+//            new StrictValidAt(new FrozenClock($datetime)),
         ]);
 
         // バリデーションエラーを例外で返したい場合はassert()を使用する
